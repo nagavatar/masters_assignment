@@ -1,0 +1,157 @@
+---
+title: "Assignment 2 ST464/ST684"
+author: "madhusudan panwar 20250509"
+date: "`r format(Sys.time(), '%X %d %B, %Y')`"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width=4, fig.height=4)
+```
+
+
+
+
+
+#### Question 1
+
+
+```{r eval=T} 
+# change to eval=T
+# place the downloaded csv file in the same folder as this Rmd file.
+morpho <- read.csv("C:/Users/Madhusudan/Desktop/Learning/Maynooth University/Semester2/ST684/Dataset/morpho.csv")
+morpho$sport<- as.factor(morpho$sport)
+#let's have a first look at data
+head(morpho)
+#checking for nulls in the data
+sum(is.na(morpho))
+#so we have 5 predictors and 1 label which has 5 categories
+
+```
+
+(a)
+```{r}
+library(ggplot2)
+library(GGally)
+#pairs(morpho[,1:5], colours(morpho$sport))
+#pairs(morpho[,1:5], col=morpho$sport)
+#legend(7,4.3,unique(morpho$sport),col=1:length(morpho$sport),pch=1)
+
+ggpairs(morpho, columns=1:5, aes(color=sport),legends=T, upper="blank",
+
+             # What to include below diagonal
+             lower = list(continuous = "points"),
+
+             # What to include in the diagonal
+             diag = list(continuous = "density"),
+
+             # How to label inner plots
+             # internal, none, show
+             axisLabels = "none")+ theme(legend.position = "bottom")
+#+theme('topright',unique(morpho$sport),col=1:length(morpho$sport),pch=1)
+
+ggpairs(morpho, columns=1:5, aes(color=sport), legends=T)+legend('bottom', legend = levels(morpho$sport), col = 1:5, cex = 0.8, pch = 1)
+
+
+#legend('topright',unique(morpho$sport),col=1:length(morpho$sport),pch=1)
+
+```
+
+We see that volleyball sport is outlier where arms is taken as variable.
+
+
+(b)
+```{r}
+summary(morpho[,1:5])
+sapply(morpho[,1:5], var)
+#we can see that varaibles are on different scale and also variance is diffenret so it's good to scale variables
+m <- prcomp(morpho[,1:5],scale=T)
+summary(m)
+m$rotation
+
+#we can see PCA1 explains only 55% of the variance while PC1+PC2 explains 55+19=74%(cumulative proportion) of the variance
+
+source("C:/Users/Madhusudan/Desktop/Learning/Maynooth University/Semester2/ST684/Assignment/screeplot.R")
+screeplot1(m)
+```
+
+
+
+(c)
+```{r}
+#biplot(m, scale=0)
+
+biplot(m, scale=T, xlabs=rep(".", nrow(morpho)), cex=c(3,1))
+#plot(m, main="PC variances")
+m$rotation[,1:2]
+#We see that PC1 consists of almost everything equally apart from BIA so as all predictors increase so does PC1 while for PC2 it depends mostly on bia i.e. as biacromial diameter increases PC2 decreases
+#so that means PC1 takes care of all variances from every varaible except bia(shoulder width measurement)
+#PC2 takes care of the remaining varaince i.e. PC2 increases as bia(diameter) decreases
+#these two things get confirmed from biplot(plot of load and score)
+
+#We don't seem to have any outliers.
+```
+
+
+
+
+(d)
+```{r}
+library(ggfortify)
+autoplot(m,data=morpho,colour='sport',scale=0,loadings=TRUE,loadings.label=TRUE)
+
+
+#  we can say no clear clustering for each sport is there i.e. overlapping clustering is there.
+```
+
+
+
+#### Question 3
+
+
+(a) (i) Label/Dependent Varaible - CEO Salary which is continuous so it is a CLASSIFICATION Problem.
+
+(ii) We are most interested in establishing relationship so we are inferencing from the existing predictors/features.
+
+(iii) n is 500 and p is 5
+profit   - Quantitative, number of employees - Quantitative , average employee salary - Quantitative, and home country - Categorical
+
+(iv) Flexible learning method would be best as we don't need to draw a hard and fast line for the prediction of CEO salary.
+
+
+(b) (i) Label's value (let's say result) is either SUCCESS OR FAILURE so it's a classification problem.
+
+(ii) We want to know whether product will be successful or not i.e. we want forecast or prediction in advance.
+
+(iii) n is 20 and p is 12.
+Price charged - Quantitative
+Marketing budget - Quantitative
+
+(iv) Inflexible learning method would be best as we won't want our product to fail after launching. So, beforehand we will want to make sure that product is successful.
+
+
+
+
+
+(c part)  (1st) Label is birthweight so it's regression problem
+
+(2nd) We want to observe relation so it's inference problem.
+
+(3rd) n is not given p is 2
+Gender - Categorical
+Days of Gestation - Quantitative.
+
+(4th) Flexible outcome will work as n is not given which is assumed to be very large..
+
+
+
+
+(d part)  (1st) Label is categorical i.e. having three classes so CLASSIFICATIOON PROBLEM.
+
+(2nd) It's inference problem.
+
+(3rd) n is 32 and p(predictor/feature) is 56.
+
+(4th) Inflexible learning will work best because if would want to predict classes then it should be correct  and another reason as n is less than p

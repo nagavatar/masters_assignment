@@ -1,0 +1,195 @@
+---
+title: "Assignment 3 ST464/ST684"
+author: "madhusudan panwar 20250509"
+date: "`r format(Sys.time(), '%X %d %B, %Y')`"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width=4, fig.height=4)
+```
+
+
+
+
+
+#### Question 2
+
+
+
+```{r } 
+library(mlbench) 
+library(ggplot2)
+library(class)
+library(MASS)
+data(PimaIndiansDiabetes2)
+d <- na.omit(PimaIndiansDiabetes2)
+set.seed(2)
+s <- sample(nrow(d), round(.5*nrow(d)))
+dtrain <- d[s,]
+dtest<- d[-s,]
+```
+
+(a) Plot the variables age and glucose using colour to show the
+two levels of diabetes for the training set.
+```{r}
+ggplot(data=dtrain, aes(x=age, y=glucose, color=diabetes) ) +
+geom_point(alpha=.5)
+
+```
+
+
+(b) Perform a logistic regression analysis  to predict diabetes, using variables age and glucose, on the training set.
+Use a plot to show the logistic classification boundaries and the training data. What is the test error of the model obtained?
+```{r}
+#fitting the data
+fit1 <- glm(diabetes ~ age+glucose, family = "binomial", data = dtrain)
+
+
+#converting diabetes column to 0 and 1
+dtrain$diabetes1 <- as.numeric(dtrain$diabetes) - 1
+
+head(dtrain)
+#we see that 1 is for positive class and 0 is for negative class
+
+#predicting probability for the training data
+prob <- predict(fit1, dtrain, type="response")
+
+
+grid <- expand.grid(
+age = seq(20, 85, length = 65),
+glucose = seq(75, 205, length = 130)
+)
+grid$prob <- predict(fit1, grid, type="response")
+
+
+ggplot(data=dtrain, aes(x=age, y=glucose)) +
+geom_point(aes(color=diabetes),alpha=.5)+
+geom_contour(data=grid,aes(z=prob),breaks=.5, color="black")
+
+
+prob_fit1 <- predict(fit1,dtest, type="response")
+pred_fit1 <- factor(ifelse(prob < .5, "neg", "pos"))
+table(dtest$diabetes, pred_fit1)
+
+
+mean(dtest$diabetes != pred_fit1)
+
+#Test error of the model is 17.85%
+```
+
+
+
+(c) Perform a linear discriminant analysis  to predict mpg01, using variables age and glucose, on the training set.
+Use a plot to show the discriminant boundaries and the training data. What is the test error of the model obtained?
+```{r}
+fit2 <- lda(diabetes ~ age+glucose, family = "binomial", data = dtrain)
+
+grid <- expand.grid(
+age = seq(20, 85, length = 65),
+glucose = seq(75, 205, length = 130)
+)
+grid$prob <- predict(fit2, grid)$posterior[,"pos"]
+
+
+ggplot(data=dtrain, aes(x=age, y=glucose)) +
+geom_point(aes(color=diabetes),alpha=.5)+
+geom_contour(data=grid,aes(z=prob),breaks=.5, color="black")
+
+pred_fit2 <- predict(fit2,dtest)$class
+table(dtest$diabetes, pred_fit2)
+
+mean(dtest$diabetes != pred_fit2)
+
+```
+
+
+
+
+(d) Repeat (b) using quadratic discriminant analysis.
+Which is better, logistic, LDA or QDA?
+```{r}
+fit3 <- qda(diabetes ~ age+glucose, family = "binomial", data = dtrain)
+
+grid <- expand.grid(
+age = seq(20, 85, length = 65),
+glucose = seq(75, 205, length = 130)
+)
+grid$pred <- predict(fit3, grid)$class
+
+
+
+ggplot(data=dtrain, aes(x=age, y=glucose, color=diabetes)) +
+  geom_point()+
+geom_point(data=grid,aes(color=pred),size=.1)
+
+pred_fit3 <- predict(fit3,dtest)$class
+table(dtest$diabetes, pred_fit3)
+
+mean(dtest$diabetes != pred_fit3)
+
+
+#QDA is giving a slightly better accuracy as cpmpared to other two i.e. Logistic and LDA.
+#QDA error 17.35% while LOgistic and LDA error 17.85%
+
+#So, QDA is best among three.
+```
+
+
+
+
+
+
+(e) Perform KNN with response of diabetes, and the same two predictors. Remember to scale the predictors for the training
+set, and apply this scaling to the test set.
+Use $k=5$ and $k=30$. Which value of $k$
+gives the best result on the test set?
+```{r}
+
+xdata <- scale(dtrain[,c(2,8)])
+means <- attr(xdata,"scaled:center")
+sds<- attr(xdata,"scaled:scale")
+xdataTest <- scale(dtest[,c(2,8)], center=means, scale=sds)
+
+
+fit_pred4 <- knn(xdata, xdataTest, dtrain[,9], k=5)
+tab4 <-table(dtest$diabetes, fit_pred4)
+tab4
+mean(dtest$diabetes != fit_pred4)
+52/196
+
+fit_pred5 <- knn(xdata, xdataTest, dtrain[,9], k=30)
+tab5 <-table(dtest$diabetes, fit_pred5)
+tab5
+43/196
+mean(dtest$diabetes != fit_pred5)
+#we see that k=30 gives better prediction
+
+```
+
+
+(f) For the better value of $k$ plot the training data and the classification boundaries from knn.
+Which classification algorithm would you recommend here based on your findings?
+```{r}
+
+
+grid1 <- expand.grid(
+age = seq(20, 65, length = 100),
+glucose = seq(50, 200, length = 100)
+)
+
+
+grids <- scale(grid1, center=means, scale=sds)
+grid1$predknn30 <- knn(xdata, grids, dtrain[,9], k=30)
+
+
+ggplot(data=dtrain, aes(x=age, y=glucose, color=diabetes))+
+geom_point(size=1, shape=1, alpha=2.9)+
+geom_point(data=grid1,aes(color=predknn30),alpha=.1)
+
+
+#Logistic gives very different results on this and as we can see boundary is non-linear so we should either use QDA or KNN with high k.
+
+```
